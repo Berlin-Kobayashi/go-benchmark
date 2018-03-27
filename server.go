@@ -3,9 +3,9 @@ package main
 import (
 	"net/http"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"runtime"
+	"strconv"
 )
 
 type Service struct {
@@ -13,21 +13,36 @@ type Service struct {
 }
 
 func (s Service) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	go func() {
-		resp, err := http.Get(s.Api)
-		if err != nil {
-			fmt.Println("ERROR: " + err.Error())
-		}
+	c, _ := strconv.Atoi(r.URL.Query().Get("c"))
 
-		defer resp.Body.Close()
+	ch := make(chan string)
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("ERROR: " + err.Error())
-		}
+	for i := 0; i < c; i++ {
+		go func() {
+			resp, err := http.Get(s.Api)
+			if err != nil {
+				ch <- string(err.Error())
+				return
+			}
 
-		fmt.Println(string(body))
-	}()
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				ch <- string(err.Error())
+				return
+			}
+
+			ch <- string(body)
+		}()
+	}
+
+	result := ""
+	for i := 0; i < c; i++ {
+		result += " " + <-ch
+	}
+
+	rw.Write([]byte(result))
 }
 
 func main() {
