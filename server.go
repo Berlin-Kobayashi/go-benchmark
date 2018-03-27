@@ -15,7 +15,7 @@ type Service struct {
 func (s Service) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	c, _ := strconv.Atoi(r.URL.Query().Get("c"))
 
-	ch := make(chan string)
+	ch := make(chan string, c)
 
 	for i := 0; i < c; i++ {
 		go func() {
